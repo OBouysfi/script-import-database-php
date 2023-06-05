@@ -21,7 +21,7 @@ class ImportDatabase
         $this->conn = $conn;
     }
 
-    // 3. Fonction de lecture du fichier CSV
+    // 3. Function READ DATA.CSV
     public function read_file()
     {
         $donnees = [];
@@ -32,7 +32,21 @@ class ImportDatabase
         fclose($handle);
         return $donnees;
     }
-
+    // 4. Read File Gender.CSV
+    public function checkGender($first_name)
+    {
+        $genderFile = "gender.csv";
+        $handle = fopen($genderFile, "r");
+        while (($data = fgetcsv($handle, 0, ",")) !== false) {
+            $gender = $data[0];
+            if ($first_name === $gender) {
+                fclose($handle);
+                return "1";
+            }
+        }
+        fclose($handle);
+        return "2";
+    }
     public function migrate($donnees)
     {
         $conn = $this->conn;
@@ -83,11 +97,19 @@ class ImportDatabase
             $gender = isset($verifiechamps[5]) ? $verifiechamps[5] : null;
             $on_behalves_id = isset($verifiechamps[6]) ? $verifiechamps[6] : null;
 
-            // 8. Insertion dans la table "users"
+            // 8. Vérifier gender dans le fichier "gender.csv"
+             if (!empty($first_name)) {
+                $genderValue = $this->checkGender($first_name);
+                if ($genderValue !== null) {
+                    $gender = $genderValue;
+                }
+            }
+
+            // 9. Insertion dans la table "users"
             if (preg_match('/@gmail\.com$/', $email)) {
                 $query = "INSERT INTO users (user_type, membership, code, first_name, last_name, email, password, photo, approved) VALUES ('$user_type', '$membership', '$newCode', '$first_name', '$last_name', '$email', '$password', '$photo', '$approved')";
 
-                // Exécuter la requête SQL
+                // Exécuter la requete SQL
                 if ($conn->query($query) === false) {
                     echo "Erreur lors de l'insertion dans la table users : " . $conn->error . "<br>";
                 } else {
@@ -100,10 +122,10 @@ class ImportDatabase
                 $user_id = $conn->insert_id;
 
                 if (!empty($user_id)) {
-                    // 10. Insertion dans la table "members"
+                // 11. Insertion dans la table "members"
                     $query = "INSERT INTO members (user_id, gender, on_behalves_id) VALUES ('$user_id', '$gender', '$on_behalves_id')";
 
-                    // Exécuter la requête SQL
+                // Exécuter la requete SQL
                     if ($conn->query($query) === false) {
                         echo "Erreur lors de l'insertion dans la table members : " . $conn->error . "<br>";
                     }
